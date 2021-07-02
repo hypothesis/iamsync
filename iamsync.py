@@ -25,7 +25,7 @@ parser.add_argument(
     "-c",
     "--config",
     type=str,
-    default="iam.yml",
+    default="/etc/iamsync.yml",
     required=False,
     help="Path to configuration file",
 )
