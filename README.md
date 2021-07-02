@@ -24,7 +24,7 @@ Increase output level.
 
 ### Configuration
 
-`iamsync.py` by default reads configuration from `iam.yml`. Here is an example entry:
+`iamsync.py` by default reads configuration from `/etc/iamsync.yml`. Here is an example entry:
 
 ```
 iamsync:
