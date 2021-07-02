@@ -36,7 +36,7 @@
   
   - name: Create iamsync config
     copy:
-      dest: '/root/iam.yml'
+      dest: '/etc/iamsync.yml'
       owner: 'root'
       group: 'root'
       mode: '0600'
