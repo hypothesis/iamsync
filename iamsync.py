@@ -95,18 +95,19 @@ def iam_user_query(group):
             logging.info(f"iam group users ({remote_users})")
         if remote_users is not None:
             for username in remote_users:
-                sshpublickeyid = iam_ssh_key_id_query(client, username)
-                if sshpublickeyid is not None:
-                    sshpublickeybody = iam_ssh_public_key_query(
-                        client, username, sshpublickeyid
-                    )
-                    iam_info_list.append(
-                        {
-                            "username": username,
-                            "sshpublickeyid": sshpublickeyid,
-                            "sshpublickeybody": sshpublickeybody,
-                        }
-                    )
+                sshpublickeyids = iam_ssh_key_ids_query(client, username)
+                for sshpublickeyid in sshpublickeyids:
+                    if sshpublickeyid is not None:
+                        sshpublickeybody = iam_ssh_public_key_query(
+                            client, username, sshpublickeyid
+                        )
+                        iam_info_list.append(
+                            {
+                                "username": username,
+                                "sshpublickeyid": sshpublickeyid,
+                                "sshpublickeybody": sshpublickeybody,
+                            }
+                        )
         return iam_info_list
     except client.exceptions.NoSuchEntityException:
         logging.error(f"iam group '{group}' defined in {args.config} is not available")
@@ -114,16 +115,16 @@ def iam_user_query(group):
         raise Exception("iam_user_query failed") from e
 
 
-def iam_ssh_key_id_query(client, username):
+def iam_ssh_key_ids_query(client, username):
     try:
         response = client.list_ssh_public_keys(UserName=username)
-        sshpublickeyid = response["SSHPublicKeys"][0]["SSHPublicKeyId"]
-        return sshpublickeyid
-    except IndexError:
-        if args.verbose > 0:
-            logging.info(f"iam group user without a valid public ssh key ({username})")
+        return list(map(extract_id_from_ssh_key, response["SSHPublicKeys"]))
     except Exception as e:
-        raise Exception("iam_ssh_key_id_query failed") from e
+        raise Exception("iam_ssh_key_ids_query failed") from e
+
+
+def extract_id_from_ssh_key(ssh_key):
+    return ssh_key["SSHPublicKeyId"]
 
 
 def iam_ssh_public_key_query(client, username, sshpublickeyid):
