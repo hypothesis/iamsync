@@ -210,10 +210,17 @@ def sudo_rule_create(group, sudo_rule, sudo_file):
 
 
 def linux_user_validate(user_info_list, group):
+    # Collect all keys for every user
+    user_keys = {}
     for user in user_info_list:
         username = user["username"]
         sshpublickeyid = user["sshpublickeyid"]
         sshpublickeybody = user["sshpublickeybody"]
+        if username not in user_keys:
+            user_keys[username] = []
+        user_keys[username].append(f"{sshpublickeybody} {sshpublickeyid}\n")
+
+    for username, keys in user_keys.items():
         homedir = f"/home/{username}"
         authorized_iam_accounts.append(username)
         try:
@@ -236,7 +243,7 @@ def linux_user_validate(user_info_list, group):
             linux_user_create(username, group, homedir)
         except Exception as e:
             raise Exception("linux_user_validate failed") from e
-        auth_ssh_key_validate(username, sshpublickeybody, sshpublickeyid)
+        auth_ssh_key_validate(username, keys)
 
 
 def linux_user_primary_gid_validate(linux_user_primary_gid, group):
@@ -283,27 +290,28 @@ def linux_user_delete(username):
         raise Exception("linux_user_delete failed") from e
 
 
-def auth_ssh_key_validate(username, sshpublickeybody, sshpublickeyid):
+def auth_ssh_key_validate(username, keys):
     try:
         homedir = f"/home/{username}"
         key_file = homedir + "/.ssh/authorized_keys"
         on_disk = open(key_file, "r").read().split()
         if len(on_disk) == 0:
             raise ValueError("empty file")
-        if not sshpublickeybody == on_disk[0] + " " + on_disk[1]:
-            raise ValueError("incorrect sshpublickeybody")
-        if not sshpublickeyid == on_disk[2]:
-            raise ValueError("incorrect sshpublickeyid")
+        # TODO Check the whole list of keys
+        # if not sshpublickeybody == on_disk[0] + " " + on_disk[1]:
+        #     raise ValueError("incorrect sshpublickeybody")
+        # if not sshpublickeyid == on_disk[2]:
+        #     raise ValueError("incorrect sshpublickeyid")
         if args.verbose > 0:
             logging.info(f"auth ssh key file validated ({key_file})")
         return True
     except IOError:
         auth_ssh_key_dir_create(homedir)
-        auth_ssh_key_file_create(key_file, sshpublickeybody, sshpublickeyid)
+        auth_ssh_key_file_create(key_file, keys)
         auth_ssh_key_perms_set(username, key_file)
     except ValueError as v:
         logging.error(f"auth ssh file validation failed ({v})")
-        auth_ssh_key_file_create(key_file, sshpublickeybody, sshpublickeyid)
+        auth_ssh_key_file_create(key_file, keys)
         auth_ssh_key_perms_set(username, key_file)
     except Exception as e:
         raise Exception("auth_ssh_key_validate failed") from e
@@ -320,10 +328,10 @@ def auth_ssh_key_dir_create(homedir):
         raise Exception("auth_ssh_key_dir_create failed") from e
 
 
-def auth_ssh_key_file_create(key_file, sshpublickeybody, sshpublickeyid):
+def auth_ssh_key_file_create(key_file, lines):
     try:
         with open(key_file, "w+") as file:
-            file.write(f"{sshpublickeybody} {sshpublickeyid}")
+            file.writelines(lines)
             logging.info(f"public ssh key created ({key_file})")
     except Exception as e:
         raise Exception("auth_ssh_key_file_create failed") from e
