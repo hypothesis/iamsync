@@ -293,26 +293,19 @@ def linux_user_delete(username):
 def auth_ssh_key_validate(username, keys):
     try:
         homedir = f"/home/{username}"
-        key_file = homedir + "/.ssh/authorized_keys"
-        on_disk = open(key_file, "r").read().split()
-        if len(on_disk) == 0:
-            raise ValueError("empty file")
-        # TODO Check the whole list of keys
-        # if not sshpublickeybody == on_disk[0] + " " + on_disk[1]:
-        #     raise ValueError("incorrect sshpublickeybody")
-        # if not sshpublickeyid == on_disk[2]:
-        #     raise ValueError("incorrect sshpublickeyid")
-        if args.verbose > 0:
-            logging.info(f"auth ssh key file validated ({key_file})")
-        return True
-    except IOError:
+        key_file = f"{homedir}/.ssh/authorized_keys"
+
+        # Delete keys file if exists
+        if os.path.exists(key_file):
+            os.remove(key_file)
+
+        # Create keys file from scratch, with provided SSH keys
         auth_ssh_key_dir_create(homedir)
         auth_ssh_key_file_create(key_file, keys)
         auth_ssh_key_perms_set(username, key_file)
-    except ValueError as v:
-        logging.error(f"auth ssh file validation failed ({v})")
-        auth_ssh_key_file_create(key_file, keys)
-        auth_ssh_key_perms_set(username, key_file)
+
+        if args.verbose > 0:
+            logging.info(f"auth ssh key file validated ({key_file})")
     except Exception as e:
         raise Exception("auth_ssh_key_validate failed") from e
 
