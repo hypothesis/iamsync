@@ -325,7 +325,8 @@ def auth_ssh_key_file_create(key_file, lines):
     try:
         with open(key_file, "w+") as file:
             file.writelines(lines)
-            logging.info(f"public ssh key created ({key_file})")
+            if args.verbose > 0:
+                logging.info(f"public ssh key created ({key_file})")
     except Exception as e:
         raise Exception("auth_ssh_key_file_create failed") from e
 
@@ -336,7 +337,8 @@ def auth_ssh_key_perms_set(username, key_file):
         gid = pwd.getpwnam(username).pw_gid
         os.chmod(key_file, 0o600)
         os.chown(key_file, uid, uid)
-        logging.info(f"public ssh key perms ({key_file}:600)")
+        if args.verbose > 0:
+            logging.info(f"public ssh key perms ({key_file}:600)")
     except Exception as e:
         raise Exception("auth_ssh_key_perms_set failed") from e
 
